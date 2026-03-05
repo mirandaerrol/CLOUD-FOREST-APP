@@ -531,10 +531,27 @@ class _ApplicantDetailModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionLabel('Plan Details'),
+                      const SectionLabel('Plan & Installation Details'),
                       const Divider(height: 12),
                       SummaryRow(label: 'Plan', value: applicant.plan),
                       SummaryRow(label: 'Applied Date', value: applicant.date),
+                      if (applicant.amortizationFee > 0) ...[
+                        const Divider(height: 14),
+                        const SectionLabel('Installation Fee'),
+                        const SizedBox(height: 6),
+                        SummaryRow(
+                          label: 'Total Fee',
+                          value: '₱ \${applicant.amortizationFee.toStringAsFixed(2)}',
+                        ),
+                        SummaryRow(
+                          label: 'Payment Terms',
+                          value: '\${applicant.paymentTerms} month\${applicant.paymentTerms > 1 ? "s" : ""}',
+                        ),
+                        SummaryRow(
+                          label: 'Monthly Amortization',
+                          value: '₱ \${(applicant.amortizationFee / (applicant.paymentTerms > 0 ? applicant.paymentTerms : 1)).toStringAsFixed(2)}',
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1215,6 +1232,50 @@ class _StaffBillingPageState extends State<StaffBillingPage> {
                             record: _filtered[i],
                             onProcessPayment: () =>
                                 setState(() => _selectedRecord = _filtered[i]),
+                            onRemit: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  title: const Text('Remit Payment?',
+                                      style: TextStyle(fontWeight: FontWeight.w800)),
+                                  content: Text(
+                                    'Mark ${_filtered[i].customerName}\'s payment as Remitted and send to Admin?',
+                                    style: const TextStyle(
+                                        color: AppColors.gray, fontSize: 13),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel')),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.orange,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      child: const Text('Remit',
+                                          style: TextStyle(color: AppColors.white)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                await _api.processPayment(PaymentRequest(
+                                  customerId: _filtered[i].customerId,
+                                  settlementType: 'Remitted',
+                                  amount: _filtered[i].totalBalance,
+                                  discount: 0,
+                                  coveragePeriod: '',
+                                  method: 'Remitted',
+                                  referenceNumber: '',
+                                  paymentDate: DateTime.now(),
+                                ));
+                                await _loadBilling();
+                              }
+                            },
                           ),
                         ),
                       ),
@@ -1230,6 +1291,16 @@ class _StaffBillingPageState extends State<StaffBillingPage> {
                 setState(() => _selectedRecord = null);
                 await _loadBilling();
               },
+              onAccept: (request) async {
+                await _api.processPayment(request);
+                await _loadBilling();
+                // Success dialog shown inside _PaymentModal itself
+              },
+              onRemit: (request) async {
+                await _api.processPayment(request);
+                setState(() => _selectedRecord = null);
+                await _loadBilling();
+              },
             ),
         ],
       ),
@@ -1237,17 +1308,83 @@ class _StaffBillingPageState extends State<StaffBillingPage> {
   }
 }
 
-class _BillingRecordCard extends StatelessWidget {
+class _BillingRecordCard extends StatefulWidget {
   final BillingRecord record;
   final VoidCallback onProcessPayment;
+  final VoidCallback? onRemit;
 
-  const _BillingRecordCard({required this.record, required this.onProcessPayment});
+  const _BillingRecordCard({
+    required this.record,
+    required this.onProcessPayment,
+    this.onRemit,
+  });
+
+  @override
+  State<_BillingRecordCard> createState() => _BillingRecordCardState();
+}
+
+class _BillingRecordCardState extends State<_BillingRecordCard> {
+  // Local optimistic states (pending admin confirmation)
+  bool _acceptedLocally = false;
+  bool _doneLocally = false;
+
+  void _handleAccept() async {
+    // Show "Successfully Paid" confirmation popup
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _SuccessPaidDialog(
+        customerName: widget.record.customerName,
+        amount: widget.record.totalBalance,
+        onConfirm: () {
+          setState(() => _acceptedLocally = true);
+          Navigator.pop(context);
+          // TODO: POST to API → routes for Admin approval
+        },
+      ),
+    );
+  }
+
+  void _handleDone() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Mark as Done?',
+            style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(
+          'This will route ${widget.record.customerName}\'s payment to Admin for final approval.',
+          style: const TextStyle(color: AppColors.gray, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _doneLocally = true);
+              Navigator.pop(context);
+              // TODO: POST to API → routes for Admin approval
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Confirm',
+                style: TextStyle(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     Color badgeColor;
     String badgeLabel;
-    switch (record.status) {
+    final isRemitted = widget.record.status == BillingStatus.remitted;
+
+    switch (widget.record.status) {
       case BillingStatus.remitted:
         badgeColor = AppColors.green;
         badgeLabel = 'REMITTED';
@@ -1272,28 +1409,34 @@ class _BillingRecordCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Customer header row ──
           Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-                child: const Icon(Icons.person_outline, size: 20, color: AppColors.gray),
+                decoration: const BoxDecoration(
+                    color: AppColors.surface, shape: BoxShape.circle),
+                child: const Icon(Icons.person_outline,
+                    size: 20, color: AppColors.gray),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(record.customerName,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                    Text(record.address,
-                        style: const TextStyle(fontSize: 11, color: AppColors.gray)),
+                    Text(widget.record.customerName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(widget.record.address,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.gray)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: badgeColor,
                   borderRadius: const BorderRadius.only(
@@ -1303,11 +1446,15 @@ class _BillingRecordCard extends StatelessWidget {
                 ),
                 child: Text(badgeLabel,
                     style: const TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.white)),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white)),
               ),
             ],
           ),
           const SizedBox(height: 14),
+
+          // ── Amount row ──
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1317,52 +1464,138 @@ class _BillingRecordCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _amountCol('Monthly', '₱${record.currentCharges.toStringAsFixed(0)}', AppColors.gray),
-                _amountCol('Prev Bal',
-                    '₱${record.previousBalance.toStringAsFixed(0)}',
-                    record.previousBalance > 0 ? AppColors.red : AppColors.gray),
-                _amountCol('Total Due', '₱${record.totalBalance.toStringAsFixed(0)}',
-                    AppColors.orange, isLarge: true),
+                _amountCol('Monthly',
+                    '₱${widget.record.currentCharges.toStringAsFixed(0)}',
+                    AppColors.gray),
+                _amountCol(
+                    'Prev Bal',
+                    '₱${widget.record.previousBalance.toStringAsFixed(0)}',
+                    widget.record.previousBalance > 0
+                        ? AppColors.red
+                        : AppColors.gray),
+                _amountCol(
+                    'Total Due',
+                    '₱${widget.record.totalBalance.toStringAsFixed(0)}',
+                    AppColors.orange,
+                    isLarge: true),
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Due: ${record.dueDateDay}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.gray)),
-              ElevatedButton(
-                onPressed: record.status == BillingStatus.remitted ? null : onProcessPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: record.status == BillingStatus.remitted
-                      ? AppColors.grayLight
-                      : AppColors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                child: Text(
-                  record.status == BillingStatus.remitted ? 'Paid' : 'Process Payment',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      color: record.status == BillingStatus.remitted
-                          ? AppColors.gray
-                          : AppColors.white),
-                ),
+          const SizedBox(height: 12),
+
+          // ── Pending admin indicator ──
+          if (_acceptedLocally || _doneLocally)
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFED7AA)),
               ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  const Icon(Icons.access_time_rounded,
+                      size: 14, color: AppColors.orange),
+                  const SizedBox(width: 6),
+                  Text(
+                    _doneLocally
+                        ? 'Marked as Done — Awaiting Admin Approval'
+                        : 'Accepted — Awaiting Admin Approval',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.orange),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── Action buttons ──
+          if (isRemitted) ...[
+            // Already remitted — show done badge
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                      size: 16, color: Color(0xFF16A34A)),
+                  SizedBox(width: 6),
+                  Text('REMITTED',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: Color(0xFF16A34A))),
+                ],
+              ),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Text('Due: ${widget.record.dueDateDay}',
+                    style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gray)),
+                const Spacer(),
+                // ACCEPT button
+                _ActionBtn(
+                  label: 'Accept',
+                  icon: Icons.check_rounded,
+                  color: const Color(0xFF16A34A),
+                  bgColor: const Color(0xFFDCFCE7),
+                  enabled: !_acceptedLocally && !_doneLocally,
+                  onTap: _handleAccept,
+                ),
+                const SizedBox(width: 8),
+                // PROCESS / DONE button
+                _ActionBtn(
+                  label: _acceptedLocally ? 'Done' : 'Process',
+                  icon: _acceptedLocally
+                      ? Icons.task_alt_rounded
+                      : Icons.edit_note_rounded,
+                  color: AppColors.white,
+                  bgColor: AppColors.black,
+                  enabled: !_doneLocally,
+                  onTap: _acceptedLocally
+                      ? _handleDone
+                      : widget.onProcessPayment,
+                ),
+                const SizedBox(width: 8),
+                // REMITTED button
+                _ActionBtn(
+                  label: 'Remit',
+                  icon: Icons.send_rounded,
+                  color: AppColors.white,
+                  bgColor: AppColors.orange,
+                  enabled: _acceptedLocally && !_doneLocally == false || true,
+                  onTap: widget.onRemit ?? () {},
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _amountCol(String label, String value, Color valueColor, {bool isLarge = false}) {
+  Widget _amountCol(String label, String value, Color valueColor,
+      {bool isLarge = false}) {
     return Column(
       children: [
         Text(label.toUpperCase(),
-            style: const TextStyle(fontSize: 9, color: AppColors.gray, fontWeight: FontWeight.w700)),
+            style: const TextStyle(
+                fontSize: 9,
+                color: AppColors.gray,
+                fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
         Text(value,
             style: TextStyle(
@@ -1374,16 +1607,200 @@ class _BillingRecordCard extends StatelessWidget {
   }
 }
 
+// Compact action button used in the billing card
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _ActionBtn({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedOpacity(
+        opacity: enabled ? 1.0 : 0.4,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Successfully Paid confirmation dialog ──────────────────────────
+class _SuccessPaidDialog extends StatelessWidget {
+  final String customerName;
+  final double amount;
+  final VoidCallback onConfirm;
+
+  const _SuccessPaidDialog({
+    required this.customerName,
+    required this.amount,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Green check header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(
+              color: Color(0xFF16A34A),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 60),
+                SizedBox(height: 10),
+                Text('Successfully Paid!',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900)),
+                SizedBox(height: 4),
+                Text('Payment confirmed by staff',
+                    style: TextStyle(
+                        color: Color(0xFFBBF7D0), fontSize: 12)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      _row('Customer', customerName),
+                      _row('Amount', '₱ ${amount.toStringAsFixed(2)}'),
+                      _row('Status', 'Accepted — For Admin Review'),
+                      _row('Date',
+                          '${DateTime.now().month}/${DateTime.now().day}/${DateTime.now().year}'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 14, color: AppColors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This will be forwarded to Admin for final remittance approval.',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onConfirm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Done',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.gray)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
 // ---- Payment Modal ----
 class _PaymentModal extends StatefulWidget {
   final BillingRecord record;
   final VoidCallback onClose;
   final Function(PaymentRequest) onConfirm;
+  final Function(PaymentRequest) onAccept;
+  final Function(PaymentRequest) onRemit;
 
   const _PaymentModal({
     required this.record,
     required this.onClose,
     required this.onConfirm,
+    required this.onAccept,
+    required this.onRemit,
   });
 
   @override
@@ -1417,6 +1834,7 @@ class _PaymentModalState extends State<_PaymentModal> {
     super.dispose();
   }
 
+  // Legacy confirm — kept for API compatibility
   Future<void> _confirm() async {
     setState(() => _isSubmitting = true);
     final request = PaymentRequest(
@@ -1633,35 +2051,96 @@ class _PaymentModalState extends State<_PaymentModal> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // ── Accept: triggers success popup + routes to admin ──
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : () async {
+                    setState(() => _isSubmitting = true);
+                    final request = PaymentRequest(
+                      customerId: widget.record.customerId,
+                      settlementType: _settlementType,
+                      amount: double.tryParse(_amountController.text) ?? 0,
+                      discount: double.tryParse(_discountController.text) ?? 0,
+                      coveragePeriod: _coverageController.text,
+                      method: _method,
+                      referenceNumber: _refController.text,
+                      remarks: _remarksController.text,
+                      paymentDate: _paymentDate,
+                    );
+                    await widget.onAccept(request);
+                    if (mounted) {
+                      setState(() => _isSubmitting = false);
+                      await showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => _SuccessPaidDialog(
+                          customerName: widget.record.customerName,
+                          amount: request.amount,
+                          onConfirm: widget.onClose,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.orange,
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 18),
+                            SizedBox(width: 8),
+                            Text('Accept & Route to Admin',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
+                    // ── Remitted ─────────────────────────────────────
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : () async {
+                          setState(() => _isSubmitting = true);
+                          final request = PaymentRequest(
+                            customerId: widget.record.customerId,
+                            settlementType: 'Remitted',
+                            amount: double.tryParse(_amountController.text) ?? 0,
+                            discount: double.tryParse(_discountController.text) ?? 0,
+                            coveragePeriod: _coverageController.text,
+                            method: _method,
+                            referenceNumber: _refController.text,
+                            remarks: _remarksController.text,
+                            paymentDate: _paymentDate,
+                          );
+                          await widget.onRemit(request);
+                          setState(() => _isSubmitting = false);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Remitted',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // ── Done ─────────────────────────────────────────
                     Expanded(
                       child: OutlinedButton(
                         onPressed: widget.onClose,
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: AppColors.grayLight),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Cancel',
-                            style: TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _confirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.orange,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                width: 20, height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: AppColors.white))
-                            : const Text('Confirm Payment',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                        child: const Text('Done',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.gray)),
                       ),
                     ),
                   ],

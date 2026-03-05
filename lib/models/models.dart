@@ -5,7 +5,7 @@
 class User {
   final String id;
   final String username;
-  final String role; // 'client' | 'staff'
+  final String role;
   final String name;
   final String? email;
   final String? contactNumber;
@@ -73,6 +73,9 @@ class BillingRecord {
   final double totalBalance;
   final BillingStatus status;
   final String dueDateDay;
+  // Installation fee tracking
+  final double installationTotal;
+  final double installationPaid;
 
   BillingRecord({
     required this.id,
@@ -85,7 +88,11 @@ class BillingRecord {
     required this.totalBalance,
     required this.status,
     this.dueDateDay = '10th',
+    this.installationTotal = 0,
+    this.installationPaid = 0,
   });
+
+  double get installationBalance => installationTotal - installationPaid;
 
   factory BillingRecord.fromJson(Map<String, dynamic> json) {
     return BillingRecord(
@@ -99,17 +106,16 @@ class BillingRecord {
       totalBalance: double.tryParse(json['total_balance'].toString()) ?? 0,
       status: _parseStatus(json['status']),
       dueDateDay: json['due_date_day'] ?? '10th',
+      installationTotal: double.tryParse(json['installation_total']?.toString() ?? '0') ?? 0,
+      installationPaid: double.tryParse(json['installation_paid']?.toString() ?? '0') ?? 0,
     );
   }
 
   static BillingStatus _parseStatus(dynamic raw) {
     switch (raw?.toString().toLowerCase()) {
-      case 'partial':
-        return BillingStatus.partial;
-      case 'remitted':
-        return BillingStatus.remitted;
-      default:
-        return BillingStatus.unpaid;
+      case 'partial': return BillingStatus.partial;
+      case 'remitted': return BillingStatus.remitted;
+      default: return BillingStatus.unpaid;
     }
   }
 
@@ -124,6 +130,8 @@ class BillingRecord {
         'total_balance': totalBalance,
         'status': status.name,
         'due_date_day': dueDateDay,
+        'installation_total': installationTotal,
+        'installation_paid': installationPaid,
       };
 }
 
@@ -242,13 +250,10 @@ class RepairTicket {
 
   static TicketStatus _parseStatus(dynamic raw) {
     switch (raw?.toString().toLowerCase()) {
-      case 'resolved':
-        return TicketStatus.resolved;
+      case 'resolved': return TicketStatus.resolved;
       case 'on_hold':
-      case 'onhold':
-        return TicketStatus.onHold;
-      default:
-        return TicketStatus.pending;
+      case 'onhold': return TicketStatus.onHold;
+      default: return TicketStatus.pending;
     }
   }
 
@@ -298,6 +303,9 @@ class Applicant {
   final ApplicantStatus status;
   final String? facebookLink;
   final String? googleMapPin;
+  // Installation fee details
+  final double amortizationFee;
+  final int paymentTerms;
 
   Applicant({
     required this.id,
@@ -310,6 +318,8 @@ class Applicant {
     required this.status,
     this.facebookLink,
     this.googleMapPin,
+    this.amortizationFee = 0,
+    this.paymentTerms = 1,
   });
 
   factory Applicant.fromJson(Map<String, dynamic> json) {
@@ -324,28 +334,24 @@ class Applicant {
       status: _parseStatus(json['status']),
       facebookLink: json['facebook_link'],
       googleMapPin: json['google_map_pin'],
+      amortizationFee: double.tryParse(json['amortization_fee']?.toString() ?? '0') ?? 0,
+      paymentTerms: int.tryParse(json['payment_terms']?.toString() ?? '1') ?? 1,
     );
   }
 
   static ConnectionType _parseType(dynamic raw) {
     switch (raw?.toString().toLowerCase()) {
-      case 'business':
-        return ConnectionType.business;
-      case 'government':
-        return ConnectionType.government;
-      default:
-        return ConnectionType.residential;
+      case 'business': return ConnectionType.business;
+      case 'government': return ConnectionType.government;
+      default: return ConnectionType.residential;
     }
   }
 
   static ApplicantStatus _parseStatus(dynamic raw) {
     switch (raw?.toString().toLowerCase()) {
-      case 'approved':
-        return ApplicantStatus.approved;
-      case 'declined':
-        return ApplicantStatus.declined;
-      default:
-        return ApplicantStatus.pending;
+      case 'approved': return ApplicantStatus.approved;
+      case 'declined': return ApplicantStatus.declined;
+      default: return ApplicantStatus.pending;
     }
   }
 
@@ -360,6 +366,8 @@ class Applicant {
         'status': status.name,
         'facebook_link': facebookLink,
         'google_map_pin': googleMapPin,
+        'amortization_fee': amortizationFee,
+        'payment_terms': paymentTerms,
       };
 }
 
@@ -372,11 +380,12 @@ class RegistrationFormData {
   String area = '';
   String landmark = '';
 
-  // Step 2 - Service Details
+  // Step 2 - Service & Installation Details
   ConnectionType connectionType = ConnectionType.residential;
   String serviceStatus = '';
   String installationPayment = '';
-  String installationPlan = '';
+  String amortizationFee = '';   // Total installation fee (e.g. ₱3,000)
+  String paymentTerms = '';      // Number of monthly amortization terms (e.g. 3)
   String dueDate = '';
 
   Map<String, dynamic> toJson() => {
@@ -389,7 +398,8 @@ class RegistrationFormData {
         'connection_type': connectionType.name,
         'status': serviceStatus,
         'installation_payment': installationPayment,
-        'installation_plan': installationPlan,
+        'amortization_fee': amortizationFee,
+        'payment_terms': paymentTerms,
         'due_date': dueDate,
       };
 }
@@ -422,12 +432,9 @@ class CustomerLookupResult {
 
   static CustomerLookupStatus _parseStatus(dynamic raw) {
     switch (raw?.toString().toLowerCase()) {
-      case 'active':
-        return CustomerLookupStatus.active;
-      case 'not_updated':
-        return CustomerLookupStatus.notUpdated;
-      default:
-        return CustomerLookupStatus.notFound;
+      case 'active': return CustomerLookupStatus.active;
+      case 'not_updated': return CustomerLookupStatus.notUpdated;
+      default: return CustomerLookupStatus.notFound;
     }
   }
 }

@@ -319,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Apply For Installation',
+                        child: const Text('Apply For Installment',
                             style: TextStyle(
                                 color: AppColors.orange,
                                 fontWeight: FontWeight.w700,
@@ -382,14 +382,14 @@ class _RegistrationFlowState extends State<RegistrationFlow> {
   ];
 
   String _stepTitle() {
-    const titles = ['Customer Profile', 'Service Details', 'Requirements', 'Review & Save'];
+    const titles = ['Customer Profile', 'Installation Details', 'Requirements', 'Review & Save'];
     return titles[_step - 1];
   }
 
   String _stepSubtitle() {
     const subs = [
       'Personal Details & Location',
-      'Plan Configuration & Billing',
+      'Fee, Amortization & Billing Terms',
       'Legal Documents & Agreement',
       'Review the installation summary',
     ];
@@ -541,6 +541,7 @@ class _RegistrationFlowState extends State<RegistrationFlow> {
   }
 
   Widget _buildStep2() {
+    final isPartial = _formData.installationPayment == 'Partially Paid';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -581,11 +582,45 @@ class _RegistrationFlowState extends State<RegistrationFlow> {
           ],
         ),
         const SizedBox(height: 14),
-        _field('Installation Plan (e.g. Fiber 799)', Icons.wifi,
-            (v) => _formData.installationPlan = v),
+        // Amortization Fee — total installation cost
+        _field('Total Installation Fee (e.g. ₱3,000)', Icons.receipt_outlined,
+            (v) => _formData.amortizationFee = v,
+            keyboardType: TextInputType.number),
+        // Payment Terms — only when Partially Paid
+        if (isPartial) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFED7AA)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: AppColors.orange),
+                    SizedBox(width: 6),
+                    Text('Partial Payment Terms',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.orange)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _field('Number of Payment Terms (e.g. 3 months)', Icons.calendar_month_outlined,
+                    (v) => _formData.paymentTerms = v,
+                    keyboardType: TextInputType.number),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
         AppDropdown(
-          label: 'Due Date',
+          label: 'Monthly Due Date',
           placeholder: 'Select Due Date',
           options: const ['5th', '10th', '15th', '20th', '25th', 'End of Month'],
           value: _formData.dueDate.isEmpty ? null : _formData.dueDate,
@@ -772,7 +807,9 @@ class _RegistrationFlowState extends State<RegistrationFlow> {
           'Connection': _formData.connectionType.name.toUpperCase(),
           'Status': _formData.serviceStatus.isEmpty ? 'Active' : _formData.serviceStatus,
           'Payment': _formData.installationPayment.isEmpty ? 'Partially Paid' : _formData.installationPayment,
-          'Plan': _formData.installationPlan.isEmpty ? 'Fiber 799' : _formData.installationPlan,
+          'Installation Fee': _formData.amortizationFee.isEmpty ? '₱3,000' : '₱${_formData.amortizationFee}',
+          if (_formData.installationPayment == 'Partially Paid')
+            'Payment Terms': _formData.paymentTerms.isEmpty ? '3 months' : '${_formData.paymentTerms} months',
           'Due Date': _formData.dueDate.isEmpty ? '10th' : _formData.dueDate,
         }),
         const SizedBox(height: 12),

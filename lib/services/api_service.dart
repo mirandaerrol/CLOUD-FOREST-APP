@@ -37,6 +37,8 @@ final mockApplicants = [
     date: 'Feb 10, 2026',
     status: ApplicantStatus.pending,
     facebookLink: 'juandelacruz',
+    amortizationFee: 3000,
+    paymentTerms: 3,
   ),
   Applicant(
     id: '2',
@@ -48,6 +50,8 @@ final mockApplicants = [
     date: 'Feb 12, 2026',
     status: ApplicantStatus.pending,
     facebookLink: 'sargeronimo',
+    amortizationFee: 5000,
+    paymentTerms: 5,
   ),
 ];
 
@@ -62,6 +66,8 @@ final mockBillingRecords = [
     currentCharges: 799,
     totalBalance: 1598,
     status: BillingStatus.unpaid,
+    installationTotal: 3000,
+    installationPaid: 1000,
   ),
   BillingRecord(
     id: '2',
@@ -73,6 +79,8 @@ final mockBillingRecords = [
     currentCharges: 1500,
     totalBalance: 0,
     status: BillingStatus.remitted,
+    installationTotal: 3000,
+    installationPaid: 3000,
   ),
   BillingRecord(
     id: '3',
@@ -84,6 +92,8 @@ final mockBillingRecords = [
     currentCharges: 1500,
     totalBalance: 500,
     status: BillingStatus.partial,
+    installationTotal: 3000,
+    installationPaid: 2000,
   ),
   BillingRecord(
     id: '4',
@@ -95,6 +105,8 @@ final mockBillingRecords = [
     currentCharges: 2000,
     totalBalance: 0,
     status: BillingStatus.remitted,
+    installationTotal: 3000,
+    installationPaid: 3000,
   ),
 ];
 

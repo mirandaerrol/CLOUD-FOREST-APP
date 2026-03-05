@@ -248,12 +248,15 @@ class ClientHomePage extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _QuickActionCard(
-                            icon: Icons.support_agent,
-                            label: 'Support',
-                            subtitle: 'Contact us',
-                            iconBg: const Color(0xFFF3E8FF),
-                            iconColor: const Color(0xFF7C3AED),
-                            onTap: () {},
+                            icon: Icons.calculate_outlined,
+                            label: 'Install Fee',
+                            subtitle: 'View breakdown',
+                            iconBg: const Color(0xFFFFF0DC),
+                            iconColor: const Color(0xFFEA580C),
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (_) => const _InstallFeeDialog(),
+                            ),
                           ),
                         ),
                       ],
@@ -416,6 +419,105 @@ class _QuickActionCard extends StatelessWidget {
 }
 
 // ============================================================
+// INSTALLATION FEE BREAKDOWN DIALOG
+// ============================================================
+
+class _InstallFeeDialog extends StatelessWidget {
+  const _InstallFeeDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    const double totalFee = 3000;
+    const int terms = 3;
+    const double perMonth = totalFee / terms;
+    const double paid = 1000;
+    const double remaining = totalFee - paid;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: AppColors.orange,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.calculate_outlined, color: AppColors.white, size: 32),
+                SizedBox(height: 8),
+                Text('Installation Fee Breakdown',
+                    style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                Text('Fiber 799 Plan',
+                    style: TextStyle(color: Color(0xFFFFD5A0), fontSize: 12)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _feeRow('Total Installation Fee', '₱${totalFee.toStringAsFixed(2)}',
+                    valueColor: AppColors.black, isBold: true),
+                const SizedBox(height: 4),
+                _feeRow('Payment Terms', '$terms months'),
+                _feeRow('Monthly Amortization', '₱${perMonth.toStringAsFixed(2)}',
+                    valueColor: AppColors.orange),
+                const Divider(height: 20),
+                _feeRow('Amount Paid', '₱${paid.toStringAsFixed(2)}',
+                    valueColor: const Color(0xFF16A34A)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: AppColors.redLight, borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('Remaining Balance',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      Text('₱2,000.00',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.red)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10)),
+                  child: const Text(
+                    '⚠ Remaining balance is collected separately from your monthly subscription.',
+                    style: TextStyle(fontSize: 11, color: AppColors.gray, height: 1.5),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                PrimaryButton(label: 'Close', onPressed: () => Navigator.pop(context), backgroundColor: AppColors.orange),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _feeRow(String label, String value, {Color valueColor = AppColors.gray, bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: isBold ? AppColors.black : AppColors.gray, fontWeight: isBold ? FontWeight.w700 : FontWeight.w400)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: valueColor)),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
 // CLIENT BILLING
 // ============================================================
 
@@ -569,55 +671,157 @@ class _ClientBillingPageState extends State<ClientBillingPage> {
         statusLabel = 'UNPAID';
     }
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(color: AppColors.shadow08, blurRadius: 16, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Monthly Bill Card ──────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(color: AppColors.shadow08, blurRadius: 16, offset: Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(billing.planName,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.gray)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(statusLabel,
-                    style: TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w800, color: statusColor)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(billing.planName,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.gray)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(6)),
+                    child: Text(statusLabel,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: statusColor)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('₱ ${billing.totalBalance.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.black)),
+              const Text('Total Amount Due',
+                  style: TextStyle(fontSize: 11, color: AppColors.gray)),
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              // ── 799 SOA Breakdown ────────────────────────────
+              const Text('Subscription Breakdown',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.gray)),
+              const SizedBox(height: 8),
+              _soaRow(Icons.wifi, 'Monthly Internet (Fiber 799)', '₱799.00', AppColors.black),
+              _soaRow(Icons.router_outlined, 'Router Maintenance Fee', '₱50.00', AppColors.gray),
+              _soaRow(Icons.support_agent_outlined, 'Technical Support Levy', '₱50.00', AppColors.gray),
+              _soaRow(Icons.cable_outlined, 'Infrastructure Charge', '₱100.00', AppColors.gray),
+              const Divider(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text('Monthly Total',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                  Text('₱999.00',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.orange)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _summaryCol('Previous Balance',
+                      '₱${billing.previousBalance.toStringAsFixed(0)}',
+                      billing.previousBalance > 0 ? AppColors.red : AppColors.green),
+                  _summaryCol('Current Charges',
+                      '₱${billing.currentCharges.toStringAsFixed(0)}', AppColors.black),
+                  _summaryCol('Due', billing.dueDateDay, AppColors.orange),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text('₱ ${billing.totalBalance.toStringAsFixed(2)}',
-              style: const TextStyle(
-                  fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.black)),
-          const Text('Total Amount Due',
-              style: TextStyle(fontSize: 11, color: AppColors.gray)),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 12),
-          Row(
+        ),
+        const SizedBox(height: 14),
+        // ── Installation Remaining Balance Card ───────────────
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFED7AA)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _summaryCol('Previous Balance',
-                  '₱${billing.previousBalance.toStringAsFixed(0)}',
-                  billing.previousBalance > 0 ? AppColors.red : AppColors.green),
-              _summaryCol('Current Charges',
-                  '₱${billing.currentCharges.toStringAsFixed(0)}', AppColors.black),
-              _summaryCol('Due', billing.dueDateDay, AppColors.orange),
+              Row(
+                children: const [
+                  Icon(Icons.home_repair_service_outlined, size: 16, color: AppColors.orange),
+                  SizedBox(width: 6),
+                  Text('Installation Balance',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.orange)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('₱2,000.00',
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.black)),
+                        Text('Remaining out of ₱3,000.00 total',
+                            style: TextStyle(fontSize: 10, color: AppColors.gray)),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: const [
+                      Text('1 of 3 paid',
+                          style: TextStyle(fontSize: 10, color: AppColors.gray)),
+                      SizedBox(height: 4),
+                      Text('₱1,000 / mo',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.orange)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: 1 / 3,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFFFD5A0),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.orange),
+                ),
+              ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _soaRow(IconData icon, String label, String amount, Color amountColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.gray),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.gray)),
+          ),
+          Text(amount,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: amountColor)),
         ],
       ),
     );
@@ -628,8 +832,7 @@ class _ClientBillingPageState extends State<ClientBillingPage> {
       child: Column(
         children: [
           Text(value,
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: valueColor)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: valueColor)),
           Text(label,
               style: const TextStyle(fontSize: 9, color: AppColors.gray),
               textAlign: TextAlign.center),
@@ -1449,6 +1652,11 @@ class ClientSettingsPage extends StatelessWidget {
               title: 'Support',
               items: [
                 _SettingsItem(
+                    icon: Icons.support_agent,
+                    label: 'Contact Support',
+                    subtitle: 'Chat or call our team',
+                    onTap: () {}),
+                _SettingsItem(
                     icon: Icons.help_outline, label: 'Help Center', onTap: () {}),
                 _SettingsItem(
                     icon: Icons.error_outline,
@@ -1519,11 +1727,13 @@ class _SettingsGroup extends StatelessWidget {
 class _SettingsItem extends StatefulWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
   final bool hasToggle;
   final VoidCallback onTap;
   const _SettingsItem({
     required this.icon,
     required this.label,
+    this.subtitle,
     this.hasToggle = false,
     required this.onTap,
   });
@@ -1540,16 +1750,18 @@ class _SettingsItemState extends State<_SettingsItem> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: widget.subtitle != null ? const Color(0xFFFFF0DC) : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(widget.icon, size: 18, color: AppColors.gray),
+        child: Icon(widget.icon, size: 18,
+            color: widget.subtitle != null ? AppColors.orange : AppColors.gray),
       ),
       title: Text(widget.label,
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.black)),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black)),
+      subtitle: widget.subtitle != null
+          ? Text(widget.subtitle!,
+              style: const TextStyle(fontSize: 11, color: AppColors.gray))
+          : null,
       trailing: widget.hasToggle
           ? Switch(
               value: _toggled,
