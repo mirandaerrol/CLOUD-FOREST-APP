@@ -713,16 +713,14 @@ class _ClientBillingPageState extends State<ClientBillingPage> {
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.gray)),
               const SizedBox(height: 8),
               _soaRow(Icons.wifi, 'Monthly Internet (Fiber 799)', '₱799.00', AppColors.black),
-              _soaRow(Icons.router_outlined, 'Router Maintenance Fee', '₱50.00', AppColors.gray),
-              _soaRow(Icons.support_agent_outlined, 'Technical Support Levy', '₱50.00', AppColors.gray),
-              _soaRow(Icons.cable_outlined, 'Infrastructure Charge', '₱100.00', AppColors.gray),
+              _soaRow(Icons.router_outlined, 'Monthly Amortization', '₱500.00', AppColors.gray),
               const Divider(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
                   Text('Monthly Total',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                  Text('₱999.00',
+                  Text('₱1,299.00',
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.orange)),
                 ],
               ),
@@ -772,10 +770,10 @@ class _ClientBillingPageState extends State<ClientBillingPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text('₱2,000.00',
+                        Text('₱1,000.00',
                             style: TextStyle(
                                 fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.black)),
-                        Text('Remaining out of ₱3,000.00 total',
+                        Text('Remaining out of ₱1,500.00 total',
                             style: TextStyle(fontSize: 10, color: AppColors.gray)),
                       ],
                     ),
@@ -786,7 +784,7 @@ class _ClientBillingPageState extends State<ClientBillingPage> {
                       Text('1 of 3 paid',
                           style: TextStyle(fontSize: 10, color: AppColors.gray)),
                       SizedBox(height: 4),
-                      Text('₱1,000 / mo',
+                      Text('₱500 / mo',
                           style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.orange)),
                     ],

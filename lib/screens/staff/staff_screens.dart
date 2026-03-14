@@ -541,16 +541,21 @@ class _ApplicantDetailModal extends StatelessWidget {
                         const SizedBox(height: 6),
                         SummaryRow(
                           label: 'Total Fee',
-                          value: '₱ \${applicant.amortizationFee.toStringAsFixed(2)}',
+                          value: '₱ ${applicant.amortizationFee.toStringAsFixed(2)}',
                         ),
                         SummaryRow(
-                          label: 'Payment Terms',
-                          value: '\${applicant.paymentTerms} month\${applicant.paymentTerms > 1 ? "s" : ""}',
+                          label: 'Terms',
+                          value: '${applicant.paymentTerms} month${applicant.paymentTerms > 1 ? "s" : ""}',
                         ),
-                        SummaryRow(
-                          label: 'Monthly Amortization',
-                          value: '₱ \${(applicant.amortizationFee / (applicant.paymentTerms > 0 ? applicant.paymentTerms : 1)).toStringAsFixed(2)}',
-                        ),
+                        Builder(builder: (context) {
+                          final monthly = applicant.paymentTerms > 0
+                              ? applicant.amortizationFee / applicant.paymentTerms
+                              : applicant.amortizationFee;
+                          return SummaryRow(
+                            label: 'Per Month',
+                            value: '₱ ${monthly.toStringAsFixed(2)}',
+                          );
+                        }),
                       ],
                     ],
                   ),
@@ -597,7 +602,7 @@ class _ApplicantDetailModal extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Confirm Approval',
+                        child: const Text('Confirm',
                             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                       ),
                     ),
