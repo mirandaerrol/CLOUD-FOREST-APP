@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_theme.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
+import 'package:flutter_application_1/services/settings_provider.dart';
 import '../../widgets/common_widgets.dart';
 
 // ============================================================
@@ -25,6 +27,15 @@ class _ClientShellState extends State<ClientShell> {
     ClientRepairPage(),
     ClientProfilePage(),
   ];
+
+  // Public method to change tab from outside
+  void changeTab(int index) {
+    if (index >= 0 && index < _pages.length) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +138,7 @@ class ClientHomePage extends StatelessWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/client/settings'),
+                    onTap: () => context.push('/client/settings'),
                     child: Container(
                       width: 42,
                       height: 42,
@@ -216,7 +227,10 @@ class ClientHomePage extends StatelessWidget {
                             subtitle: 'Check balance & SOA',
                             iconBg: const Color(0xFFFFF0DC),
                             iconColor: AppColors.orange,
-                            onTap: () {},
+                            onTap: () {
+                              // Switch to billing tab
+                              _switchToTab(context, 1);
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -227,7 +241,10 @@ class ClientHomePage extends StatelessWidget {
                             subtitle: 'Open a repair ticket',
                             iconBg: const Color(0xFFE8F4FF),
                             iconColor: const Color(0xFF2563EB),
-                            onTap: () {},
+                            onTap: () {
+                              // Switch to repair tab
+                              _switchToTab(context, 2);
+                            },
                           ),
                         ),
                       ],
@@ -242,7 +259,13 @@ class ClientHomePage extends StatelessWidget {
                             subtitle: 'Download history',
                             iconBg: const Color(0xFFE8FFE8),
                             iconColor: const Color(0xFF16A34A),
-                            onTap: () {},
+                            onTap: () {
+                              // Show receipt history placeholder
+                              showDialog(
+                                context: context,
+                                builder: (_) => const _ReceiptHistoryDialog(),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -270,6 +293,17 @@ class ClientHomePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _switchToTab(BuildContext context, int index) {
+    // Find the ClientShell widget and update its state
+    final clientShell = context.findAncestorWidgetOfExactType<ClientShell>();
+    if (clientShell != null) {
+      final state = context.findAncestorStateOfType<_ClientShellState>();
+      if (state != null) {
+        state.changeTab(index);
+      }
+    }
   }
 }
 
@@ -427,10 +461,10 @@ class _InstallFeeDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double totalFee = 3000;
+    const double totalFee = 1500;
     const int terms = 3;
     const double perMonth = totalFee / terms;
-    const double paid = 1000;
+    const double paid = 500;
     const double remaining = totalFee - paid;
 
     return Dialog(
@@ -475,11 +509,11 @@ class _InstallFeeDialog extends StatelessWidget {
                   decoration: BoxDecoration(color: AppColors.redLight, borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('Remaining Balance',
+                    children: [
+                      const Text('Remaining Balance',
                           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      Text('₱2,000.00',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.red)),
+                      Text('₱${remaining.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (Match m) => "${m[1]},")}',
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: AppColors.red)),
                     ],
                   ),
                 ),
@@ -494,7 +528,7 @@ class _InstallFeeDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                PrimaryButton(label: 'Close', onPressed: () => Navigator.pop(context), backgroundColor: AppColors.orange),
+                PrimaryButton(label: 'Close', onPressed: () => context.pop(), backgroundColor: AppColors.orange),
               ],
             ),
           ),
@@ -512,6 +546,81 @@ class _InstallFeeDialog extends StatelessWidget {
           Text(label, style: TextStyle(fontSize: 13, color: isBold ? AppColors.black : AppColors.gray, fontWeight: isBold ? FontWeight.w700 : FontWeight.w400)),
           Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: valueColor)),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// RECEIPT HISTORY DIALOG (Placeholder)
+// ============================================================
+class _ReceiptHistoryDialog extends StatelessWidget {
+  const _ReceiptHistoryDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: AppColors.cream,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        width: double.infinity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Receipt History',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => context.pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Placeholder content
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.receipt_long_rounded,
+                    size: 48,
+                    color: Color(0xFF16A34A),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Receipt History Coming Soon!',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'We are working on adding receipt history functionality.\nYou will be able to view and download all your payment receipts here.',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.gray),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              label: 'Close',
+              onPressed: () => context.pop(),
+              backgroundColor: AppColors.orange,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -942,7 +1051,7 @@ class _ReceiptModal extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        const CFLogo(size: 64, fontSize: 24),
+                        const CFLogo(size: 64),
                         const SizedBox(height: 12),
                         const Text('Acknowledgement Receipt',
                             style: TextStyle(
@@ -1047,7 +1156,7 @@ class _SOAModal extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        CFLogo(size: 56, fontSize: 20),
+                        CFLogo(size: 56),
                         SizedBox(width: 14),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1288,7 +1397,7 @@ class _ClientRepairPageState extends State<ClientRepairPage> {
                                 children: [
                                   Icon(Icons.check_circle_outline,
                                       size: 72,
-                                      color: AppColors.green.withValues(alpha: 0.4)),
+                                      color: AppColors.green.withOpacity(0.4)),
                                   const SizedBox(height: 12),
                                   const Text('No active tickets',
                                       style: TextStyle(color: AppColors.gray)),
@@ -1555,8 +1664,7 @@ class ClientProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     AppCard(
-                      onTap: () => Navigator.pushNamed(
-                          context, '/client/settings'),
+                      onTap: () => context.push('/client/settings'),
                       child: const Row(
                         children: [
                           Icon(Icons.settings_outlined,
@@ -1595,18 +1703,71 @@ class ClientProfilePage extends StatelessWidget {
 class ClientSettingsPage extends StatelessWidget {
   const ClientSettingsPage({super.key});
 
+  void _showChangePasswordDialog(BuildContext context) {
+    final oldController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: oldController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Old Password'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: newController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'New Password'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: confirmController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirm Password'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Mock change password logic
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Password changed successfully')),
+              );
+              Navigator.pop(context);
+            },
+            child: const Text('Change'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         title: const Text('Settings',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
@@ -1619,7 +1780,7 @@ class ClientSettingsPage extends StatelessWidget {
                 _SettingsItem(
                     icon: Icons.lock_outline,
                     label: 'Change Password',
-                    onTap: () {}),
+                    onTap: () => _showChangePasswordDialog(context)),
                 _SettingsItem(
                     icon: Icons.shield_outlined,
                     label: 'Security & Privacy',
@@ -1634,14 +1795,16 @@ class ClientSettingsPage extends StatelessWidget {
                     icon: Icons.notifications_outlined,
                     label: 'Push Notifications',
                     hasToggle: true,
+                    toggleValue: settings.isNotificationsEnabled,
+                    onToggle: (v) => settings.toggleNotifications(v),
                     onTap: () {}),
-                _SettingsItem(
-                    icon: Icons.dark_mode_outlined,
-                    label: 'Dark Mode',
-                    onTap: () {}),
+
                 _SettingsItem(
                     icon: Icons.volume_up_outlined,
-                    label: 'Sounds & Haptics',
+                    label: 'Haptic Feedback',
+                    hasToggle: true,
+                    toggleValue: settings.isHapticFeedbackEnabled,
+                    onToggle: (v) => settings.toggleHapticFeedback(v),
                     onTap: () {}),
               ],
             ),
@@ -1699,7 +1862,7 @@ class _SettingsGroup extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(color: AppColors.shadow06, blurRadius: 8),
@@ -1722,48 +1885,51 @@ class _SettingsGroup extends StatelessWidget {
   }
 }
 
-class _SettingsItem extends StatefulWidget {
+class _SettingsItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? subtitle;
   final bool hasToggle;
+  final bool? toggleValue;
+  final ValueChanged<bool>? onToggle;
   final VoidCallback onTap;
+
   const _SettingsItem({
     required this.icon,
     required this.label,
     this.subtitle,
     this.hasToggle = false,
+    this.toggleValue,
+    this.onToggle,
     required this.onTap,
   });
-  @override
-  State<_SettingsItem> createState() => _SettingsItemState();
-}
 
-class _SettingsItemState extends State<_SettingsItem> {
-  bool _toggled = true;
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: widget.onTap,
+      onTap: onTap,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: widget.subtitle != null ? const Color(0xFFFFF0DC) : AppColors.surface,
+          color: subtitle != null ? const Color(0xFFFFF0DC) : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(widget.icon, size: 18,
-            color: widget.subtitle != null ? AppColors.orange : AppColors.gray),
+        child: Icon(icon, size: 18,
+            color: subtitle != null ? AppColors.orange : AppColors.gray),
       ),
-      title: Text(widget.label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.black)),
-      subtitle: widget.subtitle != null
-          ? Text(widget.subtitle!,
+      title: Text(label,
+          style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.bodyLarge?.color)),
+      subtitle: subtitle != null
+          ? Text(subtitle!,
               style: const TextStyle(fontSize: 11, color: AppColors.gray))
           : null,
-      trailing: widget.hasToggle
+      trailing: hasToggle
           ? Switch(
-              value: _toggled,
-              onChanged: (v) => setState(() => _toggled = v),
+              value: toggleValue ?? false,
+              onChanged: onToggle,
               activeTrackColor: AppColors.orange,
             )
           : const Icon(Icons.chevron_right, color: AppColors.grayLight),

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 // ============================================================
 // MODELS - Ready for API integration (fromJson / toJson)
 // ============================================================
@@ -384,9 +386,14 @@ class RegistrationFormData {
   ConnectionType connectionType = ConnectionType.residential;
   String serviceStatus = '';
   String installationPayment = '';
-  String amortizationFee = '';   // Total installation fee (e.g. ₱3,000)
+  String amortizationFee = '1500';   // Fixed installation fee (₱1,500)
   String paymentTerms = '';      // Number of monthly amortization terms (e.g. 3)
   String dueDate = '';
+
+  // Step 3 - Documents
+  File? validIdFile;
+  File? selfieFile;
+  File? electricBillFile;
 
   Map<String, dynamic> toJson() => {
         'purpose': purpose,

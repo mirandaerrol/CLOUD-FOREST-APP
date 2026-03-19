@@ -4,60 +4,66 @@ import '../theme/app_theme.dart';
 // ---- CF Logo Widget ----
 class CFLogo extends StatelessWidget {
   final double size;
-  final double fontSize;
 
-  const CFLogo({super.key, this.size = 160, this.fontSize = 60});
+  const CFLogo({super.key, this.size = 160});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: size,
       height: size,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          border: Border.all(color: AppColors.black, width: 2),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.black),
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: Text(
-                    'CF',
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.orange,
-                      shadows: const [
-                        Shadow(offset: Offset(2, 2), color: AppColors.black),
-                      ],
+      child: Image.asset(
+        'assets/images/cloudforest_logo.png',
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to text logo if image fails to load
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border.all(color: AppColors.black, width: 2),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.black),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'CF',
+                        style: TextStyle(
+                          fontSize: size * 0.35,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.orange,
+                          shadows: const [
+                            Shadow(offset: Offset(2, 2), color: AppColors.black),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                color: AppColors.black,
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: const Text(
-                  'CCTV / SOLAR / FDAS / HOTSPOT /\nNETWORKING / INTERNET / COMPUTER\nAUDIO SYSTEM / OFFICE SUPPLY ETC.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
+                  Container(
+                    width: double.infinity,
+                    color: AppColors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: const Text(
+                      'CCTV / SOLAR / FDAS / HOTSPOT /\nNETWORKING / INTERNET / COMPUTER\nAUDIO SYSTEM / OFFICE SUPPLY ETC.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -94,7 +100,7 @@ class AppTextField extends StatelessWidget {
       style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         hintText: placeholder,
-        hintStyle: TextStyle(color: AppColors.gray.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(color: AppColors.gray.withOpacity(0.7)),
         filled: true,
         fillColor: AppColors.white,
         border: OutlineInputBorder(
@@ -176,7 +182,7 @@ class AppDropdown extends StatelessWidget {
                   Text(
                     placeholder,
                     style: TextStyle(
-                        color: AppColors.gray.withValues(alpha: 0.7),
+                        color: AppColors.gray.withOpacity(0.7),
                         fontSize: 14),
                   ),
                 ],
@@ -200,6 +206,7 @@ class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final bool disabled;
   final Color? backgroundColor;
   final Color? textColor;
   final IconData? trailingIcon;
@@ -210,6 +217,7 @@ class PrimaryButton extends StatelessWidget {
     required this.label,
     this.onPressed,
     this.isLoading = false,
+    this.disabled = false,
     this.backgroundColor,
     this.textColor,
     this.trailingIcon,
@@ -221,9 +229,11 @@ class PrimaryButton extends StatelessWidget {
     return SizedBox(
       width: width ?? double.infinity,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: (isLoading || disabled) ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppColors.black,
+          backgroundColor: (isLoading || disabled) 
+              ? AppColors.gray 
+              : (backgroundColor ?? AppColors.black),
           foregroundColor: textColor ?? AppColors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -453,7 +463,7 @@ class AppCard extends StatelessWidget {
           color: color ?? AppColors.white,
           borderRadius: borderRadius ?? BorderRadius.circular(16),
           border: border ??
-              Border.all(color: AppColors.grayLight.withValues(alpha: 0.5)),
+              Border.all(color: AppColors.grayLight.withOpacity(0.5)),
           boxShadow: const [
             BoxShadow(
               color: AppColors.shadow08,

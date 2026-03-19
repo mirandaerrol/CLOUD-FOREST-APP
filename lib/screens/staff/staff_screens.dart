@@ -1107,7 +1107,7 @@ class _OnSiteTabState extends State<_OnSiteTab> {
       child: Center(
         child: Text(hint,
             style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.gray.withValues(alpha: 0.7))),
+                fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.gray.withOpacity(0.7))),
       ),
     );
   }
@@ -1408,7 +1408,7 @@ class _BillingRecordCardState extends State<_BillingRecordCard> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.grayLight.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.grayLight.withOpacity(0.5)),
         boxShadow: const [BoxShadow(color: AppColors.shadow06, blurRadius: 8)],
       ),
       child: Column(
@@ -1837,23 +1837,6 @@ class _PaymentModalState extends State<_PaymentModal> {
     _refController.dispose();
     _remarksController.dispose();
     super.dispose();
-  }
-
-  // Legacy confirm — kept for API compatibility
-  Future<void> _confirm() async {
-    setState(() => _isSubmitting = true);
-    final request = PaymentRequest(
-      customerId: widget.record.customerId,
-      settlementType: _settlementType,
-      amount: double.tryParse(_amountController.text) ?? 0,
-      discount: double.tryParse(_discountController.text) ?? 0,
-      coveragePeriod: _coverageController.text,
-      method: _method,
-      referenceNumber: _refController.text,
-      remarks: _remarksController.text,
-      paymentDate: _paymentDate,
-    );
-    await widget.onConfirm(request);
   }
 
   @override

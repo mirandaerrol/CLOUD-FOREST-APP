@@ -14,26 +14,36 @@ class AppColors {
   static const redLight = Color(0xFFFEF2F2);
   static const blue = Color(0xFF2563EB);
   static const greenLight = Color(0xFFDCFCE7);
-  static const green = Color(0x00BF0D);
+  static const green = Color(0xFF16A34A);
   static const surface = Color(0xFFF9FAFB);
 
-  // Const-safe shadow colors (use in BoxShadow instead of Colors.blackXX)
-  static const shadow06 = Color(0x0F000000); // ~6% black
-  static const shadow08 = Color(0x14000000); // ~8% black
-  static const shadow12 = Color(0x1F000000); // ~12% black
+  // Dark Mode specific colors
+  static const darkSurface = Color(0xFF121212);
+  static const darkCard = Color(0xFF1E1E1E);
+  static const darkText = Color(0xFFE1E1E1);
+  static const darkGray = Color(0xFF333333);
+
+  static const shadow06 = Color(0x0F000000);
+  static const shadow08 = Color(0x14000000);
+  static const shadow12 = Color(0x1F000000);
 }
 
 class AppTheme {
-  static ThemeData get theme {
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: const ColorScheme.light(
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.orange,
+        brightness: Brightness.light,
         primary: AppColors.orange,
         secondary: AppColors.orangeLight,
-        surface: AppColors.cream,
-        error: AppColors.red,
+        surface: AppColors.white,
       ),
-      textTheme: GoogleFonts.figtreeTextTheme(),
+      textTheme: GoogleFonts.figtreeTextTheme().apply(
+        bodyColor: AppColors.black,
+        displayColor: AppColors.black,
+      ),
       scaffoldBackgroundColor: AppColors.cream,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.cream,
@@ -52,30 +62,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.grayLight),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.grayLight),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.orange, width: 2),
-        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.black,
+          backgroundColor: AppColors.orange,
           foregroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 4,
         ),
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.white,
-        elevation: 2,
-        shadowColor: AppColors.shadow12,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
